@@ -1,3 +1,5 @@
+import { hasOwn } from "../shared";
+
 const publicPropertiesMap = {
   /**
    * IMPORTANT!!!
@@ -11,9 +13,10 @@ const publicPropertiesMap = {
 
 export const PublicInstanceProxyHandlers = {
   get({ _: instance }, key) {
-    const { setupState } = instance;
-    if (key in setupState) return setupState[key];
+    const { setupState, props } = instance;
 
+    if (key in setupState) return setupState[key];
+    else if (hasOwn(props, key)) return props[key];
 
     const publicPropertyGetter = publicPropertiesMap[key];
     if (publicPropertyGetter) return publicPropertyGetter(instance);
