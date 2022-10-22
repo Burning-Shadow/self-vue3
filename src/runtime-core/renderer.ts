@@ -29,13 +29,13 @@ function mountComponent(vnode: any, container: any) {
   const instance = createComponentInstance(vnode);
 
   setupComopnent(instance);
-  setupRenderEffect(instance, container);
+  setupRenderEffect(instance, vnode, container);
 }
 
 function mountElement(vnode: any, container: any) {
   const { type, props, children } = vnode;
 
-  const el = document.createElement(type);
+  const el = (vnode.el = document.createElement(type));
 
   // vnode.children 分为两种类型 ———— string | Array
   if (typeof children === 'string') {
@@ -59,13 +59,16 @@ function mountChildren(vnodes: Array<any>, container: any) {
   });
 };
 
-function setupRenderEffect(instance: any, container: any) {
-  // 虚拟节点树
-  const subTree = instance.render();
+function setupRenderEffect(instance: any, vnode: any, container: any) {
+  const { proxy } = instance;
+  // 虚拟节点树 && 绑定组件代理，保证 this 可以取到值
+  const subTree = instance.render.call(proxy);
 
   // vnode<Element> -> patch
   // vnode -> Element -> mountElement
 
   patch(subTree, container);
+
+  vnode.el = subTree.el;
 }
 
