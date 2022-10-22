@@ -56,9 +56,17 @@ function mountElement(vnode: any, container: any) {
     mountChildren(children, el);
   }
 
+  const isNativeEvent = (key: string) => /^on[A-Z]/.test(key);
+
   // props【attribute】
   for (const key in props) {
-    el.setAttribute(key, props[key]);
+    if (isNativeEvent(key)) {
+      const event = key.slice(2).toLocaleLowerCase();
+      // 此处的 props[key] 为 callback，为防止混淆故未在上方进行 props[key] 对提前解析
+      el.addEventListener(event, props[key]);
+    } else {
+      el.setAttribute(key, props[key]);
+    }
   }
 
   container.append(el);
