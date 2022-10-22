@@ -1,4 +1,5 @@
 import { isObject } from "../shared";
+import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
 
 export function render(vnode, container) {
@@ -6,13 +7,16 @@ export function render(vnode, container) {
 };
 
 function patch(vnode, container) {
+  // debugger;
   /**
    * 判断 vnode 为 element 亦或为 component
   */
-  const { type } = vnode;
-  if (typeof type === 'string') {
+  const { shapeFlag } = vnode;
+  if (shapeFlag & SHAPE_FLAGS.ELEMENT) {
+    // typeof type === 'string'
     processElement(vnode, container);
-  } else if (isObject(type)) {
+  } else if (shapeFlag & SHAPE_FLAGS.STATEFUL_COMPONENT) {
+    // isObject(type)
     processComponent(vnode, container);
   }
 };
@@ -33,14 +37,21 @@ function mountComponent(vnode: any, container: any) {
 }
 
 function mountElement(vnode: any, container: any) {
-  const { type, props, children } = vnode;
+  const { type, props, children, shapeFlag } = vnode;
 
   const el = (vnode.el = document.createElement(type));
 
-  // vnode.children 分为两种类型 ———— string | Array
-  if (typeof children === 'string') {
+  /**
+   * 判断 vnode.children 为 string 亦或为 Array
+   * 
+   * 之所以采取位运算的形式是因为可以保证双类型：
+   *  eg: 0101【对应数值为5】即代表该 vnode 既是 ELEMENT类型 又是 TEXT_CHILDREN类型
+  */
+  if (shapeFlag & SHAPE_FLAGS.TEXT_CHILDREN) {
+    // typeof children === 'string'
     el.textContent = children;
-  } else if (Array.isArray(children)) {
+  } else if (shapeFlag & SHAPE_FLAGS.ARRAY_CHILDREN) {
+    // Array.isArray(children)
     // vnode
     mountChildren(children, el);
   }
