@@ -1,4 +1,4 @@
-import { hasOwn } from "../shared";
+import { hasOwn } from "../shared/index";
 
 const publicPropertiesMap = {
   /**
@@ -9,6 +9,7 @@ const publicPropertiesMap = {
   */
   $el: (i) => i.vnode.el,
   $data: (i) => i.vnode.data,
+  $slots: (i) => i.slots,
 };
 
 export const PublicInstanceProxyHandlers = {
