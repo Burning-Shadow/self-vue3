@@ -1,4 +1,4 @@
-import { isObject } from "../shared";
+import { isObject } from "../shared/index";
 import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
 

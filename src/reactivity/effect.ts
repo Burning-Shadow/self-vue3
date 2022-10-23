@@ -1,4 +1,4 @@
-import { extend } from "../shared";
+import { extend } from "../shared/index";
 
 let activeEffect;                         // 当前活跃的 ReactiveEffect 实例（fn），用于 get 操作时收纳入依赖回调队列
 let shouldTrack;                          // 配合 stop API 使用，避免 stop 之后再执行 get 操作时重新收集依赖
