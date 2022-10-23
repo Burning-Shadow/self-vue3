@@ -4,10 +4,10 @@ import { createComponentInstance, setupComopnent } from "./component";
 import { FRAGMENT, TEXT } from "./vnode";
 
 export function render(vnode, container) {
-  patch(vnode, container);
+  patch(vnode, container, null);
 };
 
-function patch(vnode, container) {
+function patch(vnode, container, parent) {
   // debugger;
   const { type, shapeFlag } = vnode;
 
@@ -18,7 +18,7 @@ function patch(vnode, container) {
        *  起因为 ———— slot 渲染时【src/runtime-core/helpers/renderSlot.ts : renderSlots】会执行 createVNode('div', {}, slot(props))，包裹一层 div
        *  该场景下为减少嵌套我们需引入新 vnode.type ———— Fragment
       */
-      processFragment(vnode.children, container);
+      processFragment(vnode.children, container, parent);
       break;
 
     case TEXT:
@@ -31,10 +31,10 @@ function patch(vnode, container) {
       */
       if (shapeFlag & SHAPE_FLAGS.ELEMENT) {
         // typeof type === 'string'
-        processElement(vnode, container);
+        processElement(vnode, container, parent);
       } else if (shapeFlag & SHAPE_FLAGS.STATEFUL_COMPONENT) {
         // isObject(type)
-        processComponent(vnode, container);
+        processComponent(vnode, container, parent);
       }
       break;
   }
@@ -46,27 +46,27 @@ function processText(vnode: any, container: any) {
   container.append(textNode);
 };
 
-function processFragment(children: Array<any>, container: any) {
-  console.log(children);
-  mountChildren(children, container);
+function processFragment(children: Array<any>, container: any, parent: any) {
+  // console.log(children);
+  mountChildren(children, container, parent);
 };
 
-function processElement(vnode: any, container: any) {
-  mountElement(vnode, container);
+function processElement(vnode: any, container: any, parent: any) {
+  mountElement(vnode, container, parent);
 };
 
-function processComponent(vnode: any, container: any) {
-  mountComponent(vnode, container);
+function processComponent(vnode: any, container: any, parent: any) {
+  mountComponent(vnode, container, parent);
 };
 
-function mountComponent(vnode: any, container: any) {
-  const instance = createComponentInstance(vnode);
+function mountComponent(vnode: any, container: any, parent: any) {
+  const instance = createComponentInstance(vnode, parent);
 
   setupComopnent(instance);
   setupRenderEffect(instance, vnode, container);
 }
 
-function mountElement(vnode: any, container: any) {
+function mountElement(vnode: any, container: any, parent: any) {
   const { type, props, children, shapeFlag } = vnode;
 
   const el = (vnode.el = document.createElement(type));
@@ -83,7 +83,7 @@ function mountElement(vnode: any, container: any) {
   } else if (shapeFlag & SHAPE_FLAGS.ARRAY_CHILDREN) {
     // Array.isArray(children)
     // vnode
-    mountChildren(children, el);
+    mountChildren(children, el, parent);
   }
 
   const isNativeEvent = (key: string) => /^on[A-Z]/.test(key);
@@ -102,9 +102,9 @@ function mountElement(vnode: any, container: any) {
   container.append(el);
 }
 
-function mountChildren(childVNodes: Array<any>, container: any) {
+function mountChildren(childVNodes: Array<any>, container: any, parent: any) {
   childVNodes.forEach(vnode => {
-    patch(vnode, container);
+    patch(vnode, container, parent);
   });
 };
 
@@ -116,7 +116,7 @@ function setupRenderEffect(instance: any, vnode: any, container: any) {
   // vnode<Element> -> patch
   // vnode -> Element -> mountElement
 
-  patch(subTree, container);
+  patch(subTree, container, instance);
 
   vnode.el = subTree.el;
 }
