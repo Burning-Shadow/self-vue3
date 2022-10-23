@@ -1,6 +1,7 @@
 import { isObject } from "../shared/index";
 import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
+import { FRAGMENT, TEXT } from "./vnode";
 
 export function render(vnode, container) {
   patch(vnode, container);
@@ -8,17 +9,46 @@ export function render(vnode, container) {
 
 function patch(vnode, container) {
   // debugger;
-  /**
-   * 判断 vnode 为 element 亦或为 component
-  */
-  const { shapeFlag } = vnode;
-  if (shapeFlag & SHAPE_FLAGS.ELEMENT) {
-    // typeof type === 'string'
-    processElement(vnode, container);
-  } else if (shapeFlag & SHAPE_FLAGS.STATEFUL_COMPONENT) {
-    // isObject(type)
-    processComponent(vnode, container);
+  const { type, shapeFlag } = vnode;
+
+  switch (type) {
+    case FRAGMENT:
+      /**
+       * Fragment: 只渲染 children
+       *  起因为 ———— slot 渲染时【src/runtime-core/helpers/renderSlot.ts : renderSlots】会执行 createVNode('div', {}, slot(props))，包裹一层 div
+       *  该场景下为减少嵌套我们需引入新 vnode.type ———— Fragment
+      */
+      processFragment(vnode.children, container);
+      break;
+
+    case TEXT:
+      processText(vnode, container);
+      break;
+
+    default:
+      /**
+       * 默认判断 vnode 为 element 亦或为 component
+      */
+      if (shapeFlag & SHAPE_FLAGS.ELEMENT) {
+        // typeof type === 'string'
+        processElement(vnode, container);
+      } else if (shapeFlag & SHAPE_FLAGS.STATEFUL_COMPONENT) {
+        // isObject(type)
+        processComponent(vnode, container);
+      }
+      break;
   }
+};
+
+function processText(vnode: any, container: any) {
+  const { children } = vnode;
+  const textNode = (vnode.el = document.createTextNode(children));
+  container.append(textNode);
+};
+
+function processFragment(children: Array<any>, container: any) {
+  console.log(children);
+  mountChildren(children, container);
 };
 
 function processElement(vnode: any, container: any) {
@@ -72,8 +102,8 @@ function mountElement(vnode: any, container: any) {
   container.append(el);
 }
 
-function mountChildren(vnodes: Array<any>, container: any) {
-  vnodes.forEach(vnode => {
+function mountChildren(childVNodes: Array<any>, container: any) {
+  childVNodes.forEach(vnode => {
     patch(vnode, container);
   });
 };

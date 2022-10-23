@@ -1,4 +1,4 @@
-import { h } from '../../lib/guide-self-vue3.esm.js';
+import { createTextVNode, h } from '../../lib/guide-self-vue3.esm.js';
 import { Foo } from './Foo.js';
 
 window.self = null;
@@ -24,7 +24,10 @@ export const App = {
   render() {
     const app = h('div', {}, 'App');
     const foo = h(Foo, {}, {
-      header: ({ age }) => h('p', {}, `header: age = ${age}`),
+      header: ({ age }) => [
+        h('p', {}, `header: age = ${age}`),
+        createTextVNode('你好啊'),
+      ],
       footer: () => h('p', {}, 'footer'),
     });
 
