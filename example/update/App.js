@@ -1,0 +1,21 @@
+import { h, ref } from '../../lib/guide-self-vue3.esm.js';
+
+export const App = {
+  name: 'UpdateApp',
+  setup() {
+    const count = ref(0);
+    const onClick = () => {
+      count.value++;
+    };
+    return {
+      count,
+      onClick,
+    };
+  },
+  render() {
+    return h('div', { id: 'root' }, [
+      h('div', {}, `count: ${this.count}`),
+      h('button', { onClick: this.onClick }, 'click'),
+    ]);
+  },
+};
