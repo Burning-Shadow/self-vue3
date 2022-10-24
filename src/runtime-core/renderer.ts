@@ -1,4 +1,5 @@
 import { effect } from "../reactivity/effect";
+import { isEmptyObject } from "../shared/index";
 import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
 import { createAppAPI } from "./creaetApp";
@@ -75,7 +76,42 @@ export function createRenderer(options) {
     console.log('newVNode = ', nVNode);
 
     // TODO 处理 element 更新对比
+
+    const oldProps = oVNode.props || {};
+    const newProps = nVNode.props || {};
+
+    /**
+     * TODO 这里没搞明白为什么要将 oVNode.el 赋值给 nVNode.el
+     * 因为下次调用时 nVNode 会变为 oVNode，故
+    */
+    const el = (nVNode.el = oVNode.el);
+
+    patchProps(el, oldProps, newProps);
   };
+
+  function patchProps(el: any, oldProps: any, newProps: any) {
+    // 若前后 props 相等则直接 return
+    if (oldProps === newProps) return;
+
+    for (const key in newProps) {
+      const prevProp = oldProps[key];
+      const nextProp = newProps[key];
+
+      if (prevProp !== nextProp) {
+        // update
+        hostPatchProp(el, key, prevProp, nextProp);
+      }
+    }
+
+    // 若前者为 {} 亦无需比较
+    if (isEmptyObject(oldProps)) return;
+
+    for (const key in oldProps) {
+      if (!(key in newProps)) {
+        hostPatchProp(el, key, oldProps[key], null);
+      }
+    }
+  }
 
   function processComponent(oVNode: any, nVNode: any, container: any, parent: any) {
     mountComponent(nVNode, container, parent);
@@ -110,7 +146,7 @@ export function createRenderer(options) {
 
     // props【attribute】
     for (const key in props) {
-      hostPatchProp(el, key, props[key]);
+      hostPatchProp(el, key, null, props[key]);
     }
 
     hostInsert(el, container);
@@ -155,3 +191,5 @@ export function createRenderer(options) {
 
   return { createApp: createAppAPI(render) };
 };
+
+

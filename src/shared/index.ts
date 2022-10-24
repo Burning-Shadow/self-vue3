@@ -11,3 +11,5 @@ export const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.sli
 export const toHandlerKay = (str: string) => str ? `on${capitalize(str)}` : '';
 
 export const camelize = (str: string) => str.replace(/-(\w)/g, (_, c) => (c ? c.toUpperCase() : ''));
+
+export const isEmptyObject = (obj) => Object.keys(obj).length === 0;
