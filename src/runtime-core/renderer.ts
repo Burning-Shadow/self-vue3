@@ -1,5 +1,5 @@
 import { effect } from "../reactivity/effect";
-import { isEmptyObject } from "../shared/index";
+import { getSequence, isEmptyObject } from "../shared/index";
 import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
 import { createAppAPI } from "./creaetApp";
@@ -10,13 +10,16 @@ export function createRenderer(options) {
     createElement: hostCreateElement,
     patchProp: hostPatchProp,
     insert: hostInsert,
+    remove: hostRemove,
+    setElementText: hostSetElementText,
   } = options;
 
+  // first render
   function render(nVNode, container) {
-    patch(null, nVNode, container, null);
+    patch(null, nVNode, container, null, null);
   };
 
-  function patch(oVNode, nVNode, container, parent) {
+  function patch(oVNode, nVNode, container, parent, anchor: number | null) {
     // debugger;
     const { type, shapeFlag } = nVNode;
 
@@ -27,7 +30,7 @@ export function createRenderer(options) {
          *  起因为 ———— slot 渲染时【src/runtime-core/helpers/renderSlot.ts : renderSlots】会执行 createVNode('div', {}, slot(props))，包裹一层 div
          *  该场景下为减少嵌套我们需引入新 vnode.type ———— Fragment
         */
-        processFragment(oVNode.children, nVNode.children, container, parent);
+        processFragment(oVNode.children, nVNode.children, container, parent, anchor);
         break;
 
       case TEXT:
@@ -40,10 +43,10 @@ export function createRenderer(options) {
         */
         if (shapeFlag & SHAPE_FLAGS.ELEMENT) {
           // typeof type === 'string'
-          processElement(oVNode, nVNode, container, parent);
+          processElement(oVNode, nVNode, container, parent, anchor);
         } else if (shapeFlag & SHAPE_FLAGS.STATEFUL_COMPONENT) {
           // isObject(type)
-          processComponent(oVNode, nVNode, container, parent);
+          processComponent(oVNode, nVNode, container, parent, anchor);
         }
         break;
     }
@@ -55,22 +58,28 @@ export function createRenderer(options) {
     container.append(textNode);
   };
 
-  function processFragment(oChildren: Array<any>, nChildren: Array<any>, container: any, parent: any) {
+  function processFragment(oChildren: Array<any>, nChildren: Array<any>, container: any, parent: any, anchor: number | null) {
     // console.log(nChildren);
-    mountChildren(nChildren, container, parent);
+    mountChildren(nChildren, container, parent, anchor);
   };
 
-  function processElement(oVNode: any, nVNode: any, container: any, parent: any) {
+  function processElement(
+    oVNode: any,
+    nVNode: any,
+    container: any,
+    parent: any,
+    anchor: number | null,
+  ) {
     if (!oVNode) {
       console.log('init');
-      mountElement(nVNode, container, parent);
+      mountElement(nVNode, container, parent, anchor);
     } else {
       // component update
-      patchElement(oVNode, nVNode, container);
+      patchElement(oVNode, nVNode, container, parent, anchor);
     }
   };
 
-  function patchElement(oVNode: any, nVNode: any, container: any) {
+  function patchElement(oVNode: any, nVNode: any, container: any, parent: any, anchor: number | null) {
     console.log('patch element');
     console.log('oldVNode = ', oVNode);
     console.log('newVNode = ', nVNode);
@@ -86,7 +95,201 @@ export function createRenderer(options) {
     */
     const el = (nVNode.el = oVNode.el);
 
+    patchChildren(oVNode, nVNode, el, parent, anchor);
     patchProps(el, oldProps, newProps);
+  };
+
+  function patchChildren(oVNode: any, nVNode: any, container: any, parent: any, anchor: number | null) {
+    const { shapeFlag: prevShapeFlag, children: oChildren } = oVNode;
+    const { shapeFlag: nextShapeFlag, children: nChildren } = nVNode;
+
+    if (nextShapeFlag & SHAPE_FLAGS.TEXT_CHILDREN) {
+      if (prevShapeFlag & SHAPE_FLAGS.ARRAY_CHILDREN) {
+        /**
+         * Array -> Text
+        */
+        // 1. 清空老数组
+        unmountChildren(oVNode.children);
+
+        // 2. 设置新 text
+        hostSetElementText(container, nChildren);
+      } else {
+        /**
+         * Text -> Text
+        */
+        if (oChildren !== nChildren) {
+          hostSetElementText(container, nChildren);
+        }
+      }
+    } else {
+      if (prevShapeFlag & SHAPE_FLAGS.TEXT_CHILDREN) {
+        /**
+         * Array -> Text
+        */
+        hostSetElementText(container, '');
+        mountChildren(nChildren, container, parent, anchor);
+      } else {
+        /**
+         * Array -> Array 【the diff algorithm】
+        */
+        patchKeyChildren(oChildren, nChildren, container, parent, anchor);
+      }
+    }
+  }
+
+  function patchKeyChildren(
+    c1: Array<any>,
+    c2: Array<any>,
+    container: any,
+    parent: any,
+    parentAnchor: number | null,
+  ) {
+    const l2 = c2.length;
+    let i = 0,
+      e1 = c1.length - 1,
+      e2 = l2 - 1;
+
+    function isVNodeEqual(node1: any, node2: any): boolean {
+      return node1.type === node2.type && node1.key === node2.key;
+    };
+
+    /**
+     * (a b) c
+     * (a b) d e
+    */
+    while (i <= e1 && i <= e2) {
+      const prevChild = c1[i];
+      const nextChild = c2[i];
+
+      if (!isVNodeEqual(prevChild, nextChild)) break;
+
+      patch(prevChild, nextChild, container, parent, parentAnchor);
+      i++;
+    }
+
+    /**
+     *   a (b c)
+     * d e (b c)
+    */
+    while (i <= e1 && i <= e2) {
+      const prevChild = c1[e1];
+      const nextChild = c2[e2];
+
+      if (!isVNodeEqual(prevChild, nextChild)) break;
+
+      patch(prevChild, nextChild, container, parent, parentAnchor);
+      e1--;
+      e2--;
+    }
+
+    /**
+     * (a b)
+     * (a b) c d
+    */
+    if (i > e1 && i <= e2) {
+      const nextPosition = e2 + 1;
+      const anchor = nextPosition < l2 ? c2[nextPosition].el : parentAnchor;
+      while (i <= e2) {
+        patch(null, c2[i], container, parent, anchor);
+        i++;
+      }
+    } else if (i > e2 && i <= e1) {
+      /**
+       * (a b) c d
+       * (a b)
+      */
+      while (i <= e1) {
+        hostRemove(c1[i].el);
+        i++;
+      }
+    } else {
+      /**
+       * 乱序部分
+      */
+      let s1 = i,
+        s2 = i,
+        patched = 0,
+        needMove = false,
+        maxNewIndexSoFar = 0;
+
+      const toBePatched = e2 - s2 + 1;
+      const keyToNewIndexMap = new Map();
+      const newIndex2OldIndexMap = new Array(toBePatched).fill(0); // idx 映射表【e2 - (s2 + 1) 范围内的】
+
+      for (let i = s2; i <= e2; i++) {
+        const nextChild = c2[i];
+        keyToNewIndexMap.set(nextChild.key, i);
+      }
+
+      /**
+       * a b (c d) f g
+       * a b (e c) f g
+      */
+      for (let i = s1; i <= e1; i++) {
+        const prevChild = c1[i];
+
+        if (patched >= toBePatched) {
+          hostRemove(prevChild.el);
+          continue;
+        }
+
+        let newIndex;
+        if (prevChild.key !== null) {
+          newIndex = keyToNewIndexMap.get(prevChild.key);
+        } else {
+          for (let j = s2; j <= e2; j++) {
+            if (isVNodeEqual(prevChild, c2[j])) {
+              newIndex = j;
+              break;
+            }
+          }
+        }
+
+        if (newIndex === undefined) {
+          hostRemove(prevChild.el);
+        } else {
+          if (newIndex >= maxNewIndexSoFar) {
+            maxNewIndexSoFar = newIndex;
+          } else {
+            needMove = true;
+          }
+
+          // 初始化 newIndex2OldIndexMap
+          newIndex2OldIndexMap[newIndex - s2] = (i + 1); // 由于 newIndex2OldIndexMap 数组中 0 有特殊意义，故赋值为 (i + 1) 避免问题
+          // 递归对比
+          patch(prevChild, c2[newIndex], container, parent, null);
+          patched++;
+        }
+      }
+
+      const increasingNewIndexSequence = needMove ? getSequence(newIndex2OldIndexMap) : [];
+      let pointer = increasingNewIndexSequence.length - 1;
+
+      for (let i = toBePatched - 1; i >= 0; i--) {
+        const nextIndex = i + s2;
+        const nextChild = c2[nextIndex];
+        const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : null;
+
+        if (newIndex2OldIndexMap[i] === 0) {
+          patch(null, nextChild, container, parent, anchor);
+        } else if (needMove) {
+          if (pointer < 0 || i !== increasingNewIndexSequence[pointer]) {
+            // 移动位置
+            console.log('移动位置');
+            hostInsert(nextChild.el, container, anchor);
+          } else {
+            pointer--;
+          }
+        }
+      }
+    }
+  };
+
+  function unmountChildren(children: Array<any>) {
+    for (const child of children) {
+      const { el } = child;
+      hostRemove(el);
+    }
   };
 
   function patchProps(el: any, oldProps: any, newProps: any) {
@@ -113,18 +316,18 @@ export function createRenderer(options) {
     }
   }
 
-  function processComponent(oVNode: any, nVNode: any, container: any, parent: any) {
-    mountComponent(nVNode, container, parent);
+  function processComponent(oVNode: any, nVNode: any, container: any, parent: any, anchor: number | null) {
+    mountComponent(nVNode, container, parent, anchor);
   };
 
-  function mountComponent(vnode: any, container: any, parent: any) {
+  function mountComponent(vnode: any, container: any, parent: any, anchor: number | null) {
     const instance = createComponentInstance(vnode, parent);
 
     setupComopnent(instance);
-    setupRenderEffect(instance, vnode, container);
+    setupRenderEffect(instance, vnode, container, anchor);
   }
 
-  function mountElement(vnode: any, container: any, parent: any) {
+  function mountElement(vnode: any, container: any, parent: any, anchor: number | null) {
     const { type, props, children, shapeFlag } = vnode;
 
     const el = (vnode.el = hostCreateElement(type));
@@ -141,7 +344,7 @@ export function createRenderer(options) {
     } else if (shapeFlag & SHAPE_FLAGS.ARRAY_CHILDREN) {
       // Array.isArray(children)
       // vnode
-      mountChildren(children, el, parent);
+      mountChildren(children, el, parent, anchor);
     }
 
     // props【attribute】
@@ -149,16 +352,16 @@ export function createRenderer(options) {
       hostPatchProp(el, key, null, props[key]);
     }
 
-    hostInsert(el, container);
+    hostInsert(el, container, anchor);
   }
 
-  function mountChildren(childVNodes: Array<any>, container: any, parent: any) {
+  function mountChildren(childVNodes: Array<any>, container: any, parent: any, anchor: number | null) {
     childVNodes.forEach(vnode => {
-      patch(null, vnode, container, parent);
+      patch(null, vnode, container, parent, anchor);
     });
   };
 
-  function setupRenderEffect(instance: any, vnode: any, container: any) {
+  function setupRenderEffect(instance: any, vnode: any, container: any, anchor: number | null) {
     /**
      * 利用 effect 收集，包裹 render 函数
     */
@@ -172,7 +375,7 @@ export function createRenderer(options) {
         // vnode<Element> -> patch
         // vnode -> Element -> mountElement
 
-        patch(null, subTree, container, instance);
+        patch(null, subTree, container, instance, anchor);
 
         vnode.el = subTree.el;
         instance.isMounted = true;
@@ -184,12 +387,10 @@ export function createRenderer(options) {
         const prevSubTree = instance.subTree;
 
         instance.subTree = subTree;
-        patch(prevSubTree, subTree, container, instance);
+        patch(prevSubTree, subTree, container, instance, anchor);
       }
     });
   }
 
   return { createApp: createAppAPI(render) };
 };
-
-
