@@ -3,6 +3,7 @@ import { getSequence, isEmptyObject } from "../shared/index";
 import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
 import { createAppAPI } from "./creaetApp";
+import { shouldComponentUpdate } from "./helpers/componentUpdateUtils";
 import { FRAGMENT, TEXT } from "./vnode";
 
 export function createRenderer(options) {
@@ -317,11 +318,31 @@ export function createRenderer(options) {
   }
 
   function processComponent(oVNode: any, nVNode: any, container: any, parent: any, anchor: number | null) {
-    mountComponent(nVNode, container, parent, anchor);
+    if (!oVNode) {
+      mountComponent(nVNode, container, parent, anchor);
+    } else {
+      // debugger;
+      updateComponent(oVNode, nVNode);
+    }
   };
 
+  function updateComponent(oVNode: any, nVNode: any) {
+    const instance = (nVNode.component = oVNode.component);
+    if (shouldComponentUpdate(oVNode, nVNode)) {
+      instance.next = nVNode; // 下次要更新的 vnode，便于后续 setupRenderEffect 的 update 逻辑调用
+      instance.update();
+    } else {
+      // 不需要更新也得更新 el
+      nVNode.el = oVNode.el;
+      nVNode.vnode = nVNode;
+    }
+  }
+
+  /**
+   * init
+  */
   function mountComponent(vnode: any, container: any, parent: any, anchor: number | null) {
-    const instance = createComponentInstance(vnode, parent);
+    const instance = (vnode.component = createComponentInstance(vnode, parent));
 
     setupComopnent(instance);
     setupRenderEffect(instance, vnode, container, anchor);
@@ -365,7 +386,7 @@ export function createRenderer(options) {
     /**
      * 利用 effect 收集，包裹 render 函数
     */
-    effect(() => {
+    instance.update = effect(() => {
       if (!instance.isMounted) {
         // init
         const { proxy } = instance;
@@ -380,7 +401,16 @@ export function createRenderer(options) {
         vnode.el = subTree.el;
         instance.isMounted = true;
       } else {
+        // debugger;
         // update logic
+
+        const { next: nVNode, vnode: oVNode } = instance;
+
+        if (nVNode) {
+          nVNode.el = oVNode.el;
+          updateComponentPreRender(instance, nVNode);
+        }
+
         const { proxy } = instance;
         // 虚拟节点树 && 绑定组件代理，保证 this 可以取到值
         const subTree = instance.render.call(proxy);
@@ -393,4 +423,13 @@ export function createRenderer(options) {
   }
 
   return { createApp: createAppAPI(render) };
+};
+
+function updateComponentPreRender(instance, nVNode) {
+  // debugger;
+  // 迭代更新
+  instance.vnode = nVNode;
+  instance.next = null;
+
+  instance.props = nVNode.props;
 };

@@ -8,7 +8,7 @@ const publicPropertiesMap = {
    * 只有等 patch 结束后【renderer.ts setupRenderEffect】，将 subTree 赋值给 vnode.$el 后 $el 方可正常访问
   */
   $el: (i) => i.vnode.el,
-  $data: (i) => i.vnode.data,
+  $props: (i) => i.props,
   $slots: (i) => i.slots,
 };
 
