@@ -4,6 +4,7 @@ import { SHAPE_FLAGS } from "../shared/shapeFlags";
 import { createComponentInstance, setupComopnent } from "./component";
 import { createAppAPI } from "./creaetApp";
 import { shouldComponentUpdate } from "./helpers/componentUpdateUtils";
+import { queueJobs } from "./scheduler";
 import { FRAGMENT, TEXT } from "./vnode";
 
 export function createRenderer(options) {
@@ -418,6 +419,11 @@ export function createRenderer(options) {
 
         instance.subTree = subTree;
         patch(prevSubTree, subTree, container, instance, anchor);
+      }
+    }, {
+      scheduler() {
+        console.log('update scheduler');
+        queueJobs(instance.update);
       }
     });
   }
