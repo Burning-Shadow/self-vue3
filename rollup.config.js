@@ -1,4 +1,3 @@
-import pkg from "./package.json";
 import typescript from "@rollup/plugin-typescript";
 
 export default {
@@ -6,11 +5,11 @@ export default {
   output: [
     {
       format: "cjs",
-      file: pkg.main,
+      file: 'lib/guide-self-vue3.cjs.js',
     },
     {
       format: "es",
-      file: pkg.module,
+      file: 'lib/guide-self-vue3.esm.js',
     }
   ],
   plugins: [typescript()],

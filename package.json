@@ -1,9 +1,7 @@
 {
   "name": "self-vue3",
   "version": "1.0.0",
-  "description": "",
-  "main": "lib/guide-self-vue3.cjs.js",
-  "module": "lib/guide-self-vue3.esm.js",
+  "description": "just a vue3 code demo",
   "type": "module",
   "scripts": {
     "test": "jest",
