@@ -2,8 +2,8 @@
   "name": "self-vue3",
   "version": "1.0.0",
   "description": "",
-  "main": "guide-self-vue3.cjs.js",
-  "module": "guide-self-vue3.esm.js",
+  "main": "lib/guide-self-vue3.cjs.js",
+  "module": "lib/guide-self-vue3.esm.js",
   "type": "module",
   "scripts": {
     "test": "jest",
@@ -11,7 +11,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.19.6",
     "@babel/preset-env": "^7.19.4",
