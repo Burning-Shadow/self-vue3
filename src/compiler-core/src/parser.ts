@@ -17,16 +17,37 @@ function parseChildren(context: any): Array<any> {
   const nodes: Array<any> = [];
   let node;
   const { source } = context;
+
   if (source.startsWith(OPEN_DELIMETER)) {
     node = parseInterpolation(context);
   } else if (source.startsWith('<')) {
     if (/[a-z]/i.test(source[1])) {
       node = parseElement(context);
     }
+  } else {
+    node = parseText(context);
   }
+
   nodes.push(node);
 
   return nodes;
+};
+
+function parseText(context: any): any {
+  const content = parseTextData(context);
+
+
+  return {
+    type: NodeTypes.TEXT,
+    content,
+  };
+}
+
+function parseTextData(context: any, length?: number) {
+  const content = context.source.slice(0, length);
+  advanceBy(context, content.length);
+
+  return content;
 };
 
 function parseElement(context: any) {
@@ -60,7 +81,7 @@ function parseInterpolation(context: any) {
   advanceBy(context, OPEN_DELIMETER.length);
 
   const rawContentLength = closeIdx - OPEN_DELIMETER.length;
-  const content = context.source.slice(0, rawContentLength).trim();
+  const content = parseTextData(context, rawContentLength).trim();
 
   advanceBy(context, rawContentLength + CLOSE_DELIMETER.length);
 
