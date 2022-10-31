@@ -1,4 +1,4 @@
-import { h, ref, getCurrentInstance } from '../../lib/guide-self-vue3.esm.js';
+import { h, ref, getCurrentInstance, nextTick } from '../../lib/guide-self-vue3.esm.js';
 
 export const App = {
   name: 'NextTicker',
