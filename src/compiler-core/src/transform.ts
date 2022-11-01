@@ -1,4 +1,5 @@
 import { NodeTypes } from "./ast";
+import { TO_DISPLAY_STRING } from "./transforms/runtimeHelpers";
 
 export function transform(root: any, options: any = {}) {
   const context = createTransformContext(root, options);
@@ -7,8 +8,9 @@ export function transform(root: any, options: any = {}) {
    * 2. 修改 text content
   */
   traversNode(root, context);
-
   createRootCodegen(root);
+
+  root.helpers = [...context.helpers.keys()];
 };
 
 function createRootCodegen(root: any) {
@@ -16,7 +18,14 @@ function createRootCodegen(root: any) {
 };
 
 function createTransformContext(root: any, options: any) {
-  const context = { root, nodeTransforms: options.nodeTransforms || [] };
+  const context = {
+    root,
+    nodeTransforms: options.nodeTransforms || [],
+    helpers: new Map(),
+    helper(key) {
+      context.helpers.set(key, 1);
+    },
+  };
 
   return context;
 };
@@ -28,14 +37,23 @@ function traversNode(node: any, context: any) {
     transform(node);
   }
 
-  traversChildren(node, context);
+  // 判断
+  switch (node.type) {
+    case NodeTypes.INTERPOLATION:
+      context.helper(TO_DISPLAY_STRING);
+      break;
+    case NodeTypes.ROOT:
+    case NodeTypes.ELEMENT:
+      traversChildren(node, context);
+      break;
+    default:
+      break;
+  }
 };
 
 function traversChildren(node: any, context: any) {
   const { children } = node;
-  if (children) {
-    for (const childNode of children) {
-      traversNode(childNode, context);
-    }
+  for (const childNode of children) {
+    traversNode(childNode, context);
   }
 };
