@@ -1,5 +1,5 @@
 import { NodeTypes } from "./ast";
-import { TO_DISPLAY_STRING } from "./transforms/runtimeHelpers";
+import { TO_DISPLAY_STRING } from "./runtimeHelpers";
 
 export function transform(root: any, options: any = {}) {
   const context = createTransformContext(root, options);
@@ -14,7 +14,12 @@ export function transform(root: any, options: any = {}) {
 };
 
 function createRootCodegen(root: any) {
-  root.codegenNode = root.children[0];
+  const [child] = root.children;
+  if (child.type === NodeTypes.ELEMENT) {
+    root.codegenNode = child.codegenNode;
+  } else {
+    root.codegenNode = root.children[0];
+  }
 };
 
 function createTransformContext(root: any, options: any) {
@@ -33,8 +38,12 @@ function createTransformContext(root: any, options: any) {
 function traversNode(node: any, context: any) {
   // element
   const { nodeTransforms } = context;
+  const exitFuncs: any[] = [];
   for (const transform of nodeTransforms) {
-    transform(node);
+    const onExit = transform(node, context);
+    if (onExit) {
+      exitFuncs.push(onExit);
+    }
   }
 
   // 判断
@@ -48,6 +57,14 @@ function traversNode(node: any, context: any) {
       break;
     default:
       break;
+  }
+
+  /**
+   * 防止部分 case 无法触及（前边已经轮询过去），通过 exitFuncs 缓存并随后先入后出的执行完毕
+  */
+  let i = exitFuncs.length;
+  while (i--) {
+    exitFuncs[i]();
   }
 };
 

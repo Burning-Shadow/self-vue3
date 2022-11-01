@@ -1,7 +1,9 @@
 import { generator } from "../src/codegen";
 import { baseParse } from "../src/parser";
 import { transform } from "../src/transform";
+import { transformElement } from "../src/transforms/transformElement";
 import { transformExpression } from "../src/transforms/transformExpression";
+import { transformText } from "../src/transforms/transformText";
 
 /**
  * 快照测试【去掉 -u 为测试，增加 -u 为强制更新 snap】
@@ -29,11 +31,12 @@ describe('codegen', () => {
   });
 
   it('element', () => {
-    const ast = baseParse('<div></div>');
+    const ast: any = baseParse('<div>hi,{{message}}</div>');
 
     transform(ast, {
-      nodeTransforms: [],
+      nodeTransforms: [transformExpression, transformElement, transformText],
     });
+    console.log('ast = ', ast, ast.codegenNode.children);
     const { code } = generator(ast);
     expect(code).toMatchSnapshot();
   });
