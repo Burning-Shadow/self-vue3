@@ -1,19 +1,25 @@
 import { NodeTypes } from "./ast";
 
-export function transform(root: any, options: any) {
+export function transform(root: any, options: any = {}) {
   const context = createTransformContext(root, options);
   /**
    * 1. dfs
    * 2. 修改 text content
   */
   traversNode(root, context);
+
+  createRootCodegen(root);
+};
+
+function createRootCodegen(root: any) {
+  root.codegenNode = root.children[0];
 };
 
 function createTransformContext(root: any, options: any) {
   const context = { root, nodeTransforms: options.nodeTransforms || [] };
 
   return context;
-}
+};
 
 function traversNode(node: any, context: any) {
   // element
@@ -23,7 +29,7 @@ function traversNode(node: any, context: any) {
   }
 
   traversChildren(node, context);
-}
+};
 
 function traversChildren(node: any, context: any) {
   const { children } = node;
@@ -32,4 +38,4 @@ function traversChildren(node: any, context: any) {
       traversNode(childNode, context);
     }
   }
-}
+};
