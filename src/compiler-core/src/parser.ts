@@ -174,8 +174,6 @@ function parseInterpolation(context: any) {
 }
 
 function parseText(context): any {
-  console.log('解析 text', context);
-
   // endIndex 应该看看有没有对应的 <
   // 比如 hello</div>
   // 像这种情况下 endIndex 就应该是在 o 这里
@@ -203,7 +201,6 @@ function parseText(context): any {
 }
 
 function parseTextData(context: any, length: number): any {
-  console.log('解析 textData');
   // 1. 直接返回 context.source
   // 从 length 切的话，是为了可以获取到 text 的值（需要用一个范围来确定）
   const rawText = context.source.slice(0, length);
@@ -214,7 +211,6 @@ function parseTextData(context: any, length: number): any {
 }
 
 function advanceBy(context, numberOfCharacters) {
-  console.log('推进代码', context, numberOfCharacters);
   context.source = context.source.slice(numberOfCharacters);
 }
 
