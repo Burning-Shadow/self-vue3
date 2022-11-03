@@ -6,7 +6,7 @@ export function generator(ast) {
   const context = createCodegenContext();
   const { push } = context;
 
-  generateFunctionPreamble(ast, context);
+  generateModulePreamble(ast, context);
 
   const functionName = 'render';
   const args = ['_ctx', '_cache'];
@@ -27,7 +27,7 @@ function createCodegenContext(): any {
       context.code += source;
     },
     helper(key) {
-      return `${helperMapName[key]}`;
+      return `_${helperMapName[key]}`;
     },
   };
 
@@ -56,8 +56,8 @@ function genNode(node: any, context: any) {
   }
 };
 
-// 前导字符串拼接
-function generateFunctionPreamble(ast: any, context: any) {
+// 前导字符串拼接【此处的 preamble 即为 import 语句】
+function generateModulePreamble(ast: any, context: any) {
   const { push } = context;
   const VueBinging = 'Vue';
   const aliaHelper = (s) => `${helperMapName[s]}: _${helperMapName[s]}`;
@@ -76,7 +76,7 @@ function genText(node: any, context: any) {
 
 function genInterpolation(node: any, context: any) {
   const { push, helper } = context;
-  push(`_${helper(TO_DISPLAY_STRING)}(`);
+  push(`${helper(TO_DISPLAY_STRING)}(`);
   genNode(node.content, context);
   push(')');
 }

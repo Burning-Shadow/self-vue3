@@ -392,7 +392,7 @@ export function createRenderer(options) {
         // init
         const { proxy } = instance;
         // 虚拟节点树 && 绑定组件代理，保证 this 可以取到值
-        const subTree = (instance.subTree = instance.render.call(proxy));
+        const subTree = (instance.subTree = instance.render.call(proxy, proxy));
 
         // vnode<Element> -> patch
         // vnode -> Element -> mountElement
@@ -414,7 +414,7 @@ export function createRenderer(options) {
 
         const { proxy } = instance;
         // 虚拟节点树 && 绑定组件代理，保证 this 可以取到值
-        const subTree = instance.render.call(proxy);
+        const subTree = instance.render.call(proxy, proxy);
         const prevSubTree = instance.subTree;
 
         instance.subTree = subTree;

@@ -10,15 +10,15 @@ export function transform(root: any, options: any = {}) {
   traversNode(root, context);
   createRootCodegen(root);
 
-  root.helpers = [...context.helpers.keys()];
+  root.helpers.push(...context.helpers.keys());
 };
 
 function createRootCodegen(root: any) {
   const [child] = root.children;
-  if (child.type === NodeTypes.ELEMENT) {
+  if (child.type === NodeTypes.ELEMENT && child.codegenNode) {
     root.codegenNode = child.codegenNode;
   } else {
-    root.codegenNode = root.children[0];
+    root.codegenNode = child;
   }
 };
 
@@ -68,8 +68,8 @@ function traversNode(node: any, context: any) {
   }
 };
 
-function traversChildren(node: any, context: any) {
-  const { children } = node;
+function traversChildren(parentNode: any, context: any) {
+  const { children } = parentNode;
   for (const childNode of children) {
     traversNode(childNode, context);
   }
