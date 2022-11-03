@@ -1,0 +1,10 @@
+{
+  "name": "guide-self-vue3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@guide-self-vue3/compiler-core": "workspace:^1.0.0",
+    "@guide-self-vue3/runtime-dom": "workspace:^1.0.0"
+  }
+}
