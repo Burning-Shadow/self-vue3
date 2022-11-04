@@ -11,7 +11,7 @@ export class ReactiveEffect {
   private _fn: Function;
   public scheduler: Function | undefined; // 执行 set 操作时的回调
 
-  constructor(fn, scheduler?) {
+  constructor(fn, scheduler?: Function) {
     this._fn = fn;
     this.scheduler = scheduler;
   }
